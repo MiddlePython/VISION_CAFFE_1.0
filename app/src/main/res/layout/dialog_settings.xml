@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Параметры integration кассы aQsi"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#0088CC"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="IP-адрес терминала (для сетевого подключения)"
+        android:textSize="13sp"
+        android:textColor="#555555"
+        android:layout_marginBottom="4dp"/>
+
+    <EditText
+        android:id="@+id/etAqsiIp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Например: 192.168.1.100"
+        android:inputType="text"
+        android:text="127.0.0.1"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Система налогообложения (СНО)"
+        android:textSize="13sp"
+        android:textColor="#555555"
+        android:layout_marginBottom="4dp"/>
+
+    <EditText
+        android:id="@+id/etAqsiSno"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="УСН Доход, Патент и т.д."
+        android:text="УСН Доход"
+        android:inputType="text" />
+</LinearLayout>
