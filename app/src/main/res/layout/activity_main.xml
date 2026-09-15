@@ -8,173 +8,179 @@
     android:background="#F4F6F9"
     android:baselineAligned="false">
 
-    <!-- ЛЕВАЯ ПАНЕЛЬ: Камера, Тара, Корзина заказа -->
-    <LinearLayout
+    <!-- ЛЕВАЯ ПАНЕЛЬ: Обернута в ScrollView для вертикальной прокрутки -->
+    <ScrollView
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="4.3"
-        android:orientation="vertical"
-        android:padding="12dp">
-
-        <!-- Область камеры -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="120dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp">
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                <androidx.camera.view.PreviewView
-                    android:id="@+id/previewView"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </FrameLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Выбор Тары -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Выберите тару:"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#555555"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="4dp"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvPlates"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:listitem="@layout/item_plate_card"/>
-
-        <!-- ТЕКУЩИЙ ВЕС И КНОПКА ДОБАВЛЕНИЯ -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#EDF7FD"
-            app:strokeColor="#0088CC"
-            app:strokeWidth="1dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="8dp"
-                android:gravity="center_vertical">
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/tvLiveDishName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Блюдо не выбрано"
-                        android:textStyle="bold"
-                        android:textColor="#212121"
-                        android:textSize="15sp"/>
-                    <TextView
-                        android:id="@+id/tvLiveWeight"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Нетто: 0 г | 0.00 ₽"
-                        android:textColor="#666666"
-                        android:textSize="13sp"/>
-                </LinearLayout>
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnAddToOrder"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="В чек +"
-                    android:backgroundTint="#0088CC"
-                    android:textColor="#FFFFFF"
-                    app:cornerRadius="8dp"/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- СПИСОК ЗАКАЗА -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Текущий чек:"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="#555555"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="4dp"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvOrderItems"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:background="#FFFFFF" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#E0E0E0"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"/>
-
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerVertical="true"
-                android:text="ИТОГО К ОПЛАТЕ:"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="#212121"/>
-            <TextView
-                android:id="@+id/tvTotalPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:text="0.00 ₽"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="#E65100" />
-        </RelativeLayout>
+        android:fillViewport="true"
+        android:scrollbars="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnReset"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                android:text="Отменить чек"
-                android:textColor="#FF3B30"
-                app:strokeColor="#FF3B30"
-                app:cornerRadius="10dp" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPay"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1.5"
-                android:text="Оплатить aQsi"
-                android:textSize="15sp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Область камеры -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <androidx.camera.view.PreviewView
+                        android:id="@+id/previewView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Выбор Тары -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Выберите тару:"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:backgroundTint="#FFDD2D"
-                android:textColor="#000000"
-                app:cornerRadius="10dp" />
+                android:textColor="#555555"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="4dp"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPlates"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                tools:listitem="@layout/item_plate_card"/>
+
+            <!-- ТЕКУЩИЙ ВЕС И КНОПКА ДОБАВЛЕНИЯ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#EDF7FD"
+                app:strokeColor="#0088CC"
+                app:strokeWidth="1dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:gravity="center_vertical">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/tvLiveDishName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Блюдо не выбрано"
+                            android:textStyle="bold"
+                            android:textColor="#212121"
+                            android:textSize="15sp"/>
+                        <TextView
+                            android:id="@+id/tvLiveWeight"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Нетто: 0 г | 0.00 ₽"
+                            android:textColor="#666666"
+                            android:textSize="13sp"/>
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddToOrder"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="В чек +"
+                        android:backgroundTint="#0088CC"
+                        android:textColor="#FFFFFF"
+                        app:cornerRadius="8dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- СПИСОК ЗАКАЗА -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Текущий чек:"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#555555"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="4dp"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvOrderItems"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:background="#FFFFFF" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E0E0E0"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp"/>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:text="ИТОГО К ОПЛАТЕ:"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#212121"/>
+                <TextView
+                    android:id="@+id/tvTotalPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:text="0.00 ₽"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="#E65100" />
+            </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:orientation="horizontal">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReset"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="Отменить чек"
+                    android:textColor="#FF3B30"
+                    app:strokeColor="#FF3B30"
+                    app:cornerRadius="10dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnPay"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.5"
+                    android:text="Оплатить aQsi"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="#FFDD2D"
+                    android:textColor="#000000"
+                    app:cornerRadius="10dp" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 
     <View
         android:layout_width="1dp"
