@@ -12,10 +12,13 @@ data class DishEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val category: String,
-    val pricePerGram: Double
+    // Используется как цена за 1 грамм для весовых, или как цена за 1 штуку для штучных
+    val pricePerGram: Double, 
+    // Флаг: true - товар штучный, false - товар весовой (по умолчанию)
+    val isPiece: Boolean = false 
 )
 
-// НОВАЯ СУЩНОСТЬ ДЛЯ ШАБЛОНОВ ТАРЫ
+// СУЩНОСТЬ ДЛЯ ШАБЛОНОВ ТАРЫ
 @Entity(tableName = "plates")
 data class PlateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -42,7 +45,8 @@ interface DishDao {
     suspend fun insertPlate(plate: PlateEntity)
 }
 
-@Database(entities = [DishEntity::class, PlateEntity::class], version = 2, exportSchema = false)
+// Версия изменена на 3, так как изменилась структура DishEntity
+@Database(entities = [DishEntity::class, PlateEntity::class], version = 3, exportSchema = false)
 abstract class DishDatabase : RoomDatabase() {
     abstract fun dishDao(): DishDao
 
@@ -72,12 +76,16 @@ abstract class DishDatabase : RoomDatabase() {
                     INSTANCE?.let { database ->
                         val dao = database.dishDao()
                         
-                        // Предзаполнение блюд
+                        // Предзаполнение блюд (включая весовые и штучные)
                         val defaultDishes = listOf(
-                            DishEntity(name = "Борщ с говядиной", category = "Супы", pricePerGram = 0.45),
-                            DishEntity(name = "Котлета домашняя", category = "Горячее", pricePerGram = 0.85),
-                            DishEntity(name = "Пюре картофельное", category = "Гарниры", pricePerGram = 0.20),
-                            DishEntity(name = "Оливье", category = "Салаты", pricePerGram = 0.50)
+                            DishEntity(name = "Борщ с говядиной", category = "Супы", pricePerGram = 0.45, isPiece = false),
+                            DishEntity(name = "Котлета домашняя", category = "Горячее", pricePerGram = 0.85, isPiece = false),
+                            DishEntity(name = "Пюре картофельное", category = "Гарниры", pricePerGram = 0.20, isPiece = false),
+                            DishEntity(name = "Оливье", category = "Салаты", pricePerGram = 0.50, isPiece = false),
+                            
+                            // НОВЫЕ ШТУЧНЫЕ ТОВАРЫ
+                            DishEntity(name = "Булочка с корицей", category = "Выпечка и напитки", pricePerGram = 65.00, isPiece = true),
+                            DishEntity(name = "Сок в ассортименте (0.5л)", category = "Выпечка и напитки", pricePerGram = 90.00, isPiece = true)
                         )
                         defaultDishes.forEach { dao.insertDish(it) }
 
