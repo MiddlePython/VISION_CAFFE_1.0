@@ -11,9 +11,10 @@ import java.util.Locale
 data class OrderItem(
     val id: Long,
     val dishName: String,
-    val weightGrams: Int,
-    val pricePerGram: Double,
-    val totalPrice: Double
+    val weightGrams: Int, // Для штучного товара здесь будет храниться количество (1, 2, 3...)
+    val pricePerGram: Double, // Для штучного товара здесь хранится цена за 1 шт.
+    val totalPrice: Double,
+    val isPiece: Boolean = false // Флаг штучного товара
 )
 
 class OrderItemsAdapter(
@@ -36,7 +37,17 @@ class OrderItemsAdapter(
     override fun onBindViewHolder(holder: OrderViewHolder, position: Int) {
         val item = items[position]
         holder.tvName.text = item.dishName
-        holder.tvDetails.text = String.format(Locale.US, "%d г x %.2f ₽/г", item.weightGrams, item.pricePerGram * 100)
+        
+        // Разделяем вывод в зависимости от типа товара
+        if (item.isPiece) {
+            // Формат для штучного товара (например: "2 шт. x 65.00 ₽/шт.")
+            holder.tvDetails.text = String.format(Locale.US, "%d шт. x %.2f ₽/шт.", item.weightGrams, item.pricePerGram)
+        } else {
+            // Исправленный базовый формат для весового товара (например: "150 г x 0.45 ₽/г")
+            // Если в вашей системе в pricePerGram передается цена именно за 100г, верните обратно: item.pricePerGram * 100
+            holder.tvDetails.text = String.format(Locale.US, "%d г x %.2f ₽/г", item.weightGrams, item.pricePerGram)
+        }
+        
         holder.tvPrice.text = String.format(Locale.US, "%.2f ₽", item.totalPrice)
         
         holder.btnRemove.setOnClickListener { onRemoveClick(item) }
