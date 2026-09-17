@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_toStartOf="@+id/btnRemoveItem"
+        android:layout_toStartOf="@+id/tvOrderItemPrice"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true">
         
@@ -26,6 +26,7 @@
             android:textStyle="bold"
             android:textColor="#212121"/>
         
+        <!-- Сюда будет динамически выводиться "150 г x 0.45 ₽/г" ИЛИ "2 шт. x 65.00 ₽/шт." -->
         <TextView
             android:id="@+id/tvOrderItemDetails"
             android:layout_width="wrap_content"
