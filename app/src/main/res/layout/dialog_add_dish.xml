@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
         <RadioButton
             android:id="@+id/rbTypeDish"
             android:layout_width="wrap_content"
@@ -34,11 +34,21 @@
             android:text="Шаблон тары"/>
     </RadioGroup>
 
+    <!-- Переключатель для штучного товара (виден только для блюд) -->
+    <CheckBox
+        android:id="@+id/cbIsPieceProduct"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="Это штучный товар (не весовой)"
+        android:textSize="14sp"
+        android:visibility="visible" />
+
     <EditText
         android:id="@+id/etNewDishName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Название (например: Тарелка стеклянная)"
+        android:hint="Название (например: Булочка / Глубокая тарелка)"
         android:inputType="textCapWords" />
 
     <EditText
@@ -46,7 +56,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="Категория (Супы, Горячее, Салаты)"
+        android:hint="Категория (Супы, Выпечка, Салаты)"
         android:inputType="textCapWords" />
 
     <EditText
@@ -54,6 +64,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="Цена за 100 грамм (в ₽)"
+        android:hint="Цена (за 100г весового ИЛИ за 1 шт. штучного)"
         android:inputType="numberDecimal" />
 </LinearLayout>
