@@ -11,6 +11,7 @@ import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -39,7 +40,6 @@ class MainActivity : AppCompatActivity() {
     private var lastOcrTime = 0L
 
     // Область ROI (в процентах от ширины/высоты кадра)
-    // Отрегулируйте эти значения под положение дисплея весов в камере
     private val roiLeftPercent = 0.30f
     private val roiTopPercent = 0.15f
     private val roiWidthPercent = 0.40f
@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var tareWeightGrams: Int = 220
     private var selectedDish: DishEntity? = null
 
-    // Корзина заказа (iiko-функционал)
+    // Корзина заказа
     private val orderItemsList = mutableListOf<OrderItem>()
     private lateinit var orderAdapter: OrderItemsAdapter
 
@@ -90,25 +90,25 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalGetImage::class)
     private fun processImageForOcr(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastOcrTime < 400) { // Проверка 2.5 раза в секунду
+        if (currentTime - lastOcrTime < 400) { // ~2.5 раза в секунду
             imageProxy.close()
             return
         }
         lastOcrTime = currentTime
 
-        val bitmap = imageProxy.toBitmap()
+        val bitmap = imageProxy.toBitmapSafe()
         if (bitmap != null) {
             try {
-                // 1. Обрезаем область дисплея (ROI)
                 val cropX = (bitmap.width * roiLeftPercent).toInt().coerceIn(0, bitmap.width - 1)
                 val cropY = (bitmap.height * roiTopPercent).toInt().coerceIn(0, bitmap.height - 1)
-                val cropW = (bitmap.width * roiWidthPercent).toInt().coerceAtMost(bitmap.width - cropX)
-                val cropH = (bitmap.height * roiHeightPercent).toInt().coerceAtMost(bitmap.height - cropY)
+                val cropW = (bitmap.width * roiWidthPercent).toInt()
+                    .coerceAtMost(bitmap.width - cropX)
+                val cropH = (bitmap.height * roiHeightPercent).toInt()
+                    .coerceAtMost(bitmap.height - cropY)
 
                 if (cropW > 0 && cropH > 0) {
                     val roiBitmap = Bitmap.createBitmap(bitmap, cropX, cropY, cropW, cropH)
 
-                    // 2. Распознаем 7-сегментные цифры
                     val recognizedText = SevenSegmentDecoder.decodeBitmap(roiBitmap)
 
                     if (recognizedText.isNotEmpty()) {
@@ -127,6 +127,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
         imageProxy.close()
+    }
+
+    /**
+     * Безопасная конвертация ImageProxy -> Bitmap.
+     * Работает через YUV_420_888 (стандартный формат CameraX).
+     */
+    @OptIn(ExperimentalGetImage::class)
+    private fun ImageProxy.toBitmapSafe(): Bitmap? {
+        val mediaImage = image ?: return null
+        return try {
+            // CameraX 1.3+ имеет публичный toBitmap(), но он experimental.
+            // Если версия ниже — используем YuvToRgbConverter.
+            this.toBitmap()
+        } catch (e: Throwable) {
+            Log.e("MainActivity", "toBitmap failed: ${e.message}")
+            null
+        }
     }
 
     private fun loadDataFromDatabase() {
@@ -236,16 +253,36 @@ class MainActivity : AppCompatActivity() {
         val etName = view.findViewById<EditText>(R.id.etNewDishName)
         val etCategory = view.findViewById<EditText>(R.id.etNewDishCategory)
         val etValue = view.findViewById<EditText>(R.id.etNewDishPrice100g)
+        val cbIsPiece = view.findViewById<CheckBox>(R.id.cbIsPieceProduct)
 
+        // По умолчанию "Блюдо" — категория и чекбокс видны
         etCategory.visibility = View.VISIBLE
+        cbIsPiece.visibility = View.VISIBLE
 
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
             if (checkedId == R.id.rbTypePlate) {
                 etCategory.visibility = View.GONE
+                cbIsPiece.visibility = View.GONE
                 etValue.hint = "Вес тары в граммах (например: 200)"
             } else {
                 etCategory.visibility = View.VISIBLE
-                etValue.hint = "Цена за 100 грамм (в ₽)"
+                cbIsPiece.visibility = View.VISIBLE
+                etValue.hint = if (cbIsPiece.isChecked) {
+                    "Цена за 1 штуку (в ₽)"
+                } else {
+                    "Цена за 100 грамм (в ₽)"
+                }
+            }
+        }
+
+        // Динамическое изменение хинта в зависимости от чекбокса штучного товара
+        cbIsPiece.setOnCheckedChangeListener { _, isChecked ->
+            if (radioGroup.checkedRadioButtonId == R.id.rbTypeDish) {
+                etValue.hint = if (isChecked) {
+                    "Цена за 1 штуку (в ₽)"
+                } else {
+                    "Цена за 100 грамм (в ₽)"
+                }
             }
         }
 
@@ -265,20 +302,27 @@ class MainActivity : AppCompatActivity() {
                         }
                     } else {
                         val category = etCategory.text.toString().trim()
-                        val price100g = valueStr.toDoubleOrNull() ?: 0.0
+                        val rawPrice = valueStr.toDoubleOrNull() ?: 0.0
+                        val isPieceProduct = cbIsPiece.isChecked
+
+                        // Весовой: цена за 100г -> цена за грамм
+                        // Штучный: цена за штуку как есть
+                        val finalPrice = if (isPieceProduct) rawPrice else (rawPrice / 100.0)
+
                         withContext(Dispatchers.IO) {
                             database.dishDao().insertDish(
                                 DishEntity(
                                     name = name,
                                     category = category,
-                                    pricePerGram = price100g / 100.0
+                                    pricePerGram = finalPrice,
+                                    isPiece = isPieceProduct
                                 )
                             )
                         }
                     }
                     Toast.makeText(
                         this@MainActivity,
-                        "Шаблон успешно сохранен!",
+                        "Успешно сохранено!",
                         Toast.LENGTH_SHORT
                     ).show()
                     loadDataFromDatabase()
@@ -291,14 +335,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCalculations() {
-        val netWeight = (grossWeightGrams - tareWeightGrams).coerceAtLeast(0)
-        val priceFactor = selectedDish?.pricePerGram ?: 0.0
-        val totalPrice = netWeight * priceFactor
-        findViewById<TextView>(R.id.tvLiveWeight).text = String.format(
-            Locale.US,
-            "Нетто: %d г | Текущая цена: %.2f ₽",
-            netWeight, totalPrice
-        )
+        val dish = selectedDish
+        if (dish == null) {
+            findViewById<TextView>(R.id.tvLiveWeight).text = "Нетто: 0 г | Текущая цена: 0.00 ₽"
+            return
+        }
+
+        if (dish.isPiece) {
+            // Для штучного товара вес на весах игнорируется
+            val defaultCount = 1
+            val totalPrice = defaultCount * dish.pricePerGram
+            findViewById<TextView>(R.id.tvLiveWeight).text = String.format(
+                Locale.US,
+                "Кол-во: %d шт. | Текущая цена: %.2f ₽",
+                defaultCount, totalPrice
+            )
+        } else {
+            val netWeight = (grossWeightGrams - tareWeightGrams).coerceAtLeast(0)
+            val totalPrice = netWeight * dish.pricePerGram
+            findViewById<TextView>(R.id.tvLiveWeight).text = String.format(
+                Locale.US,
+                "Нетто: %d г | Текущая цена: %.2f ₽",
+                netWeight, totalPrice
+            )
+        }
     }
 
     private fun updateTotalCartPrice() {
@@ -322,18 +382,30 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Сначала выберите блюдо в меню справа!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val netWeight = (grossWeightGrams - tareWeightGrams).coerceAtLeast(0)
-            if (netWeight <= 0) {
-                Toast.makeText(this, "Вес нетто должен быть больше 0 грамм!", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+
+            val itemPrice: Double
+            val countOrWeight: Int
+
+            if (dish.isPiece) {
+                countOrWeight = 1
+                itemPrice = dish.pricePerGram * countOrWeight
+            } else {
+                val netWeight = (grossWeightGrams - tareWeightGrams).coerceAtLeast(0)
+                if (netWeight <= 0) {
+                    Toast.makeText(this, "Вес нетто должен быть больше 0 грамм!", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                countOrWeight = netWeight
+                itemPrice = netWeight * dish.pricePerGram
             }
-            val itemPrice = netWeight * dish.pricePerGram
+
             val newOrderItem = OrderItem(
                 id = System.currentTimeMillis(),
                 dishName = dish.name,
-                weightGrams = netWeight,
+                weightGrams = countOrWeight, // для штучного — количество
                 pricePerGram = dish.pricePerGram,
-                totalPrice = itemPrice
+                totalPrice = itemPrice,
+                isPiece = dish.isPiece
             )
             orderItemsList.add(newOrderItem)
             orderAdapter.updateData(orderItemsList)
@@ -343,7 +415,7 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.btnPay).setOnClickListener {
             if (orderItemsList.isEmpty()) {
-                Toast.makeText(this, "Чек пуст! Добавьте взвешенные позиции.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Чек пуст! Добавьте взвешенные или штучные позиции.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val prefs = getSharedPreferences("KassaPrefs", MODE_PRIVATE)
@@ -411,9 +483,7 @@ class MainActivity : AppCompatActivity() {
 
             val preview = Preview.Builder()
                 .build()
-                .also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+                .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
             val imageAnalyzer = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -455,100 +525,110 @@ class MainActivity : AppCompatActivity() {
 }
 
 /**
- * Декодер 7-сегментного LED-дисплея весов
+ * Декодер 7-сегментного LED-дисплея весов.
+ *
+ * ВАЖНО: реализация очень чувствительна к положению и масштабу дисплея в кадре.
+ * Для продакшена лучше использовать ML Kit / TFLite-модель или
+ * специализированный OCR для семисегментных индикаторов.
  */
 object SevenSegmentDecoder {
 
-    // Порядок сегментов: [Top, TopRight, BottomRight, Bottom, BottomLeft, TopLeft, Middle]
-    private val SEGMENT_PATTERNS = mapOf(
-        listOf(true, true, true, true, true, true, false) to '0',
-        listOf(false, true, true, false, false, false, false) to '1',
-        listOf(true, true, false, true, true, false, true) to '2',
-        listOf(true, true, true, true, false, false, true) to '3',
-        listOf(false, true, true, false, false, true, true) to '4',
-        listOf(true, false, true, true, false, true, true) to '5',
-        listOf(true, false, true, true, true, true, true) to '6',
-        listOf(true, true, true, false, false, false, false) to '7',
-        listOf(true, true, true, true, true, true, true) to '8',
-        listOf(true, true, true, true, false, true, true) to '9'
+    // Порядок сегментов: a(верх), b(правый верх), c(правый низ),
+    // d(низ), e(левый низ), f(левый верх), g(центр)
+    private val SEGMENT_PATTERNS: Map<List<Boolean>, Char> = mapOf(
+        listOf(true,  true,  true,  true,  true,  true,  false) to '0',
+        listOf(false, true,  true,  false, false, false, false) to '1',
+        listOf(true,  true,  false, true,  true,  false, true)  to '2',
+        listOf(true,  true,  true,  true,  false, false, true)  to '3',
+        listOf(false, true,  true,  false, false, true,  true)  to '4',
+        listOf(true,  false, true,  true,  false, true,  true)  to '5',
+        listOf(true,  false, true,  true,  true,  true,  true)  to '6',
+        listOf(true,  true,  true,  false, false, false, false) to '7',
+        listOf(true,  true,  true,  true,  true,  true,  true)  to '8',
+        listOf(true,  true,  true,  true,  false, true,  true)  to '9'
     )
 
     fun decodeBitmap(bitmap: Bitmap): String {
         val width = bitmap.width
         val height = bitmap.height
+        if (width == 0 || height == 0) return ""
+
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
+        // Ищем столбцы, где есть "зажжённые" красные пиксели
         val columnHasLum = BooleanArray(width)
         for (x in 0 until width) {
             for (y in 0 until height) {
-                val pixel = pixels[y * width + x]
-                val r = (pixel shr 16) and 0xFF
-                val g = (pixel shr 8) and 0xFF
-                val b = pixel and 0xFF
-
-                // Фильтр красного свечения LED
-                if (r > 140 && g < 100 && b < 100) {
+                if (isRedOn(pixels[y * width + x])) {
                     columnHasLum[x] = true
                     break
                 }
             }
         }
 
+        // Разбиваем на "боксы" цифр
         val digitBoxes = mutableListOf<Pair<Int, Int>>()
         var inDigit = false
         var startX = 0
-
         for (x in 0 until width) {
             if (columnHasLum[x] && !inDigit) {
                 inDigit = true
                 startX = x
             } else if (!columnHasLum[x] && inDigit) {
                 inDigit = false
-                if (x - startX > 4) { // Отсеиваем шумы
-                    digitBoxes.add(Pair(startX, x))
-                }
+                if (x - startX > 4) digitBoxes.add(Pair(startX, x))
             }
         }
+        if (inDigit && width - startX > 4) digitBoxes.add(Pair(startX, width))
 
         val result = StringBuilder()
         for ((dStartX, dEndX) in digitBoxes) {
             val dWidth = dEndX - dStartX
-            val digitChar = decodeSingleDigit(pixels, width, height, dStartX, dWidth)
-            if (digitChar != null) {
-                result.append(digitChar)
-            }
+            val ch = decodeSingleDigit(pixels, width, height, dStartX, dWidth)
+            if (ch != null) result.append(ch)
         }
-
         return result.toString()
     }
 
-    private fun decodeSingleDigit(pixels: IntArray, imgWidth: Int, imgHeight: Int, startX: Int, dWidth: Int): Char? {
+    private fun decodeSingleDigit(
+        pixels: IntArray,
+        imgWidth: Int,
+        imgHeight: Int,
+        startX: Int,
+        dWidth: Int
+    ): Char? {
         val midX = startX + dWidth / 2
         val midY = imgHeight / 2
         val quarterY = imgHeight / 4
         val threeQuarterY = (imgHeight * 3) / 4
 
+        // Порядок сегментов: a, b, c, d, e, f, g
         val checkPoints = listOf(
-            Pair(midX, quarterY / 2),
-            Pair(startX + (dWidth * 0.85).toInt(), quarterY),
-            Pair(startX + (dWidth * 0.85).toInt(), threeQuarterY),
-            Pair(midX, imgHeight - (quarterY / 2)),
-            Pair(startX + (dWidth * 0.15).toInt(), threeQuarterY),
-            Pair(startX + (dWidth * 0.15).toInt(), quarterY),
-            Pair(midX, midY)
+            Pair(midX, quarterY / 2),                                        // a (верх)
+            Pair(startX + (dWidth * 0.85).toInt(), quarterY),                // b
+            Pair(startX + (dWidth * 0.85).toInt(), threeQuarterY),           // c
+            Pair(midX, imgHeight - (quarterY / 2)),                          // d (низ)
+            Pair(startX + (dWidth * 0.15).toInt(), threeQuarterY),           // e
+            Pair(startX + (dWidth * 0.15).toInt(), quarterY),                // f
+            Pair(midX, midY)                                                 // g (центр)
         )
 
         val states = checkPoints.map { (cx, cy) ->
             if (cx in 0 until imgWidth && cy in 0 until imgHeight) {
-                val pixel = pixels[cy * imgWidth + cx]
-                val r = (pixel shr 16) and 0xFF
-                val g = (pixel shr 8) and 0xFF
-                val b = pixel and 0xFF
-                r > 130 && g < 110 && b < 110
-            } else false
+                isRedOn(pixels[cy * imgWidth + cx])
+            } else {
+                false
+            }
         }
 
         return SEGMENT_PATTERNS[states]
+    }
+
+    private fun isRedOn(pixel: Int): Boolean {
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return r > 130 && g < 110 && b < 110
     }
 }
